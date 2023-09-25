@@ -51,17 +51,20 @@ deriveForDec' className makeClassHead f (DataInstD dataCxt name tyArgs _ cons _)
 #endif
     where
         inst = instanceD (cxt (map return dataCxt)) clhead [dec]
+        dec = f bndrs cons
+
 #if __GLASGOW_HASKELL__ >= 808
         clhead = makeClassHead $ return $ initTy ty
-#if __GLASGOW_HASKELL__ >= 900
-        bndrs = [PlainTV v x | PlainTV v x <- maybe [] id tvBndrs]
-#else
-        bndrs = [PlainTV v | PlainTV v <- maybe [] id tvBndrs]
-#endif
         initTy (AppT ty _) = ty
 #else
         clhead = makeClassHead $ foldl1 appT (map return $ (ConT name : init tyArgs))
+#endif
+
+#if __GLASGOW_HASKELL__ >= 900
+        bndrs = [PlainTV v x | PlainTV v x <- maybe [] id tvBndrs]
+#elif __GLASGOW_HASKELL__ >= 808
+        bndrs = [PlainTV v | PlainTV v <- maybe [] id tvBndrs]
+#else
         -- TODO: figure out proper number of family parameters vs instance parameters
         bndrs = [PlainTV v | VarT v <- tail tyArgs ]
 #endif
-        dec = f bndrs cons
